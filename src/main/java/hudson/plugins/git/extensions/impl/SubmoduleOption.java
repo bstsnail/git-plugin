@@ -74,6 +74,10 @@ public class SubmoduleOption extends GitSCMExtension {
         return timeout;
     }
 
+    public boolean isParentCredentials() {
+        return parentCredentials;
+    }
+
     @Override
     public void onClean(GitSCM scm, GitClient git) throws IOException, InterruptedException, GitException {
         if (!disableSubmodules && git.hasGitModules()) {
