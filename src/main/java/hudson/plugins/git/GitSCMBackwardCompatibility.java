@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Set;
 
+import static org.apache.commons.lang.StringUtils.defaultIfBlank;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 /**
@@ -204,7 +205,7 @@ public abstract class GitSCMBackwardCompatibility extends SCM implements Seriali
                 skipTag = null;
             }
             if (disableSubmodules || recursiveSubmodules || trackingSubmodules) {
-                addIfMissing(new SubmoduleOption(disableSubmodules, recursiveSubmodules, trackingSubmodules, null, null));
+                addIfMissing(new SubmoduleOption(disableSubmodules, recursiveSubmodules, trackingSubmodules, null, null, false));
             }
             if (isNotBlank(gitConfigName) || isNotBlank(gitConfigEmail)) {
                 addIfMissing(new UserIdentity(gitConfigName,gitConfigEmail));

@@ -14,7 +14,7 @@
     </license>
   </licenses>
 
-  <artifactId>git</artifactId>
+  <artifactId>git-t1</artifactId>
   <version>2.6.5</version>
   <packaging>hpi</packaging>
   <name>Jenkins Git plugin</name>
@@ -157,7 +157,7 @@
 
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>git-client</artifactId>
+      <artifactId>git-client-t1</artifactId>
       <version>1.21.0</version>
     </dependency>
     <dependency>
