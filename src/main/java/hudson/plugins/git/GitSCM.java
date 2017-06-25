@@ -3,6 +3,7 @@ package hudson.plugins.git;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.google.common.collect.Iterables;
 
@@ -1026,6 +1027,18 @@ public class GitSCM extends GitSCMBackwardCompatibility {
         if (VERBOSE)
             listener.getLogger().println("Using strategy: " + getBuildChooser().getDisplayName());
 
+        EnvVars environment = build.getEnvironment(listener);
+
+        //String doesClusterCompile = environment.get("IEG_CI_SODA_CLUSTER_BUILD");
+        //doesClusterCompile != null && !"".equals(doesClusterCompile.trim()) ||
+        String gitEnabled = environment.get("IEG_CI_SODA_JENKINS_GIT_ENABLED");
+        if (gitEnabled== null || "".equals(gitEnabled.trim())){
+            listener.getLogger().println("[GIT]git  flag is null ,then little client will work to fetch code from git!");
+            return ;
+
+        }
+        listener.getLogger().println("[GIT]git  flag is "+gitEnabled+" ,then jenkins git plugin will work!");
+
         BuildData previousBuildData = getBuildData(build.getPreviousBuild());   // read only
         BuildData buildData = copyBuildData(build.getPreviousBuild());
         build.addAction(buildData);
@@ -1033,7 +1046,6 @@ public class GitSCM extends GitSCMBackwardCompatibility {
             listener.getLogger().println("Last Built Revision: " + buildData.lastBuild.revision);
         }
 
-        EnvVars environment = build.getEnvironment(listener);
         GitClient git = createClient(listener, environment, build, workspace);
 
         for (GitSCMExtension ext : extensions) {
@@ -1158,6 +1170,27 @@ public class GitSCM extends GitSCMBackwardCompatibility {
 
     public void buildEnvVars(AbstractBuild<?, ?> build, java.util.Map<String, String> env) {
         super.buildEnvVars(build, env);
+
+        env.put("IEG_CI_SODA_SCM_TYPE", "GIT");
+        for (UserRemoteConfig uc : getUserRemoteConfigs()) {
+            if (uc.getCredentialsId() != null) {
+                String url = uc.getUrl();
+                StandardUsernameCredentials credentials = CredentialsMatchers
+                        .firstOrNull(
+                                CredentialsProvider.lookupCredentials(StandardUsernameCredentials.class, build.getParent(),
+                                        ACL.SYSTEM, URIRequirementBuilder.fromUri(url).build()),
+                                CredentialsMatchers.allOf(CredentialsMatchers.withId(uc.getCredentialsId()),
+                                        GitClient.CREDENTIALS_MATCHER));
+                if (credentials != null && (credentials instanceof StandardUsernamePasswordCredentials)) {
+                    StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
+                    //env.put("IEG_CI_SODA_GITPPASS", Scrambler.descramble(Scrambler.scramble(c.getPassword().getPlainText())));
+                    env.put("IEG_CI_SODA_GITUSER", c.getUsername());
+                    env.put("IEG_CI_SODA_GITPASS",c.getPassword().getPlainText());
+                    break;
+                }
+            }
+        }
+
         Revision rev = fixNull(getBuildData(build)).getLastBuiltRevision();
         if (rev!=null) {
             Branch branch = Iterables.getFirst(rev.getBranches(), null);
@@ -1178,15 +1211,22 @@ public class GitSCM extends GitSCMBackwardCompatibility {
             env.put(GIT_COMMIT, fixEmpty(rev.getSha1String()));
         }
 
-       
+        int counto=1;
+        for(UserRemoteConfig config:userRemoteConfigs)   {
+            env.put("IEG_CI_SODA_GIT_URL_"+counto, config.getUrl()==null?"":config.getUrl());
+            env.put("IEG_CI_SODA_GIT_NAME_"+counto, config.getName()==null?"":config.getName());
+            env.put("IEG_CI_SODA_GIT_REF_"+counto, config.getRefspec()==null?"":config.getRefspec());
+            counto++;
+        }
+
         if (userRemoteConfigs.size()==1){
-            env.put("GIT_URL", userRemoteConfigs.get(0).getUrl());
+            env.put("GIT_URL", userRemoteConfigs.get(0).getUrl()==null?"":userRemoteConfigs.get(0).getUrl());
         } else {
             int count=1;
             for(UserRemoteConfig config:userRemoteConfigs)   {
-                env.put("GIT_URL_"+count, config.getUrl());
+                env.put("GIT_URL_"+count, config.getUrl()==null?"":config.getUrl());
                 count++;
-            }  
+            }
         }
 
         getDescriptor().populateEnvironmentVariables(env);
